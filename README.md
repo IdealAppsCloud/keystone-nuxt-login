@@ -1,2 +1,10 @@
 # keystone-nuxt-login
-Keystone nuxt integration login example
+Example of a keystone nuxt integration with registration and basic auth functionality
+
+## Install locally
+
+```
+npm install
+
+npm run dev
+```
