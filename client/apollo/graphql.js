@@ -26,7 +26,7 @@ export const UPDATE_USER_MUTATION = gql`mutation ($id: ID!, $data: UserUpdateInp
 
 export const LOGIN_MUTATION = gql`mutation authenticate($email: String!, $password: String!) {
     authenticateUserWithPassword(email: $email, password: $password ) {
-        item{ id, firstName, lastName, email, isAdmin },
+        item{ id, firstName, lastName, email, isAdmin, isMember, verificationToken, isVerified },
         token
     }
 }`
@@ -55,5 +55,11 @@ export const ALL_USERS_QUERY = gql`query AllUsersQuery {
         lastName
         email
         isMember
+    }
+}`
+
+export const ALL_USERS_TOKEN_QUERY = gql`query AllUsersQuery($token: String!) {
+    allUsers(where: {verificationToken: $token}) {
+        id
     }
 }`

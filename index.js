@@ -7,6 +7,12 @@ const { GraphQLApp } = require('@keystonejs/app-graphql');
 const { AdminUIApp } = require('@keystonejs/app-admin-ui');
 
 /*****************************
+ * Environment variables
+ *****************************/
+const dotenv = require('dotenv');
+dotenv.config();
+
+/*****************************
  * Mongo
  *****************************/
 const { MongooseAdapter: Adapter } = require('@keystonejs/adapter-mongoose');
@@ -20,7 +26,7 @@ const PROJECT_NAME = "Keystone Nuxt Login";
  * Nuxt
  *****************************/
 const { NuxtApp } = require('@keystonejs/app-nuxt');
-const nuxtConfig = require('./client/nuxt.config')
+const nuxtConfig = require('./client/nuxt.config');
 
 /*****************************
  * Keystone
@@ -38,7 +44,10 @@ const keystone = new Keystone({
   cookieSecret: 'This is a very secret very-secret!!!!!'
 });
 
-// Access control functions
+
+/*****************************
+ * Access control functions
+ *****************************/
 const userIsAdmin = ({ authentication: { item: user } }) => Boolean(user && user.isAdmin);
 const userIsMember = ({ authentication: { item: user } }) => Boolean(user && user.isMember);
 const userOwnsItem = ({ authentication: { item: user } }) => {
@@ -56,6 +65,9 @@ const userIsAdminOrOwner = auth => {
 
 const access = { userIsAdmin, userIsMember, userOwnsItem, userIsAdminOrOwner };
 
+/*****************************
+ * User list
+ *****************************/
 keystone.createList('User', {
   fields: {
     firstName: { type: Text },
@@ -78,6 +90,27 @@ keystone.createList('User', {
     password: {
       type: Password,
     },
+    verificationToken: {
+      type: Text,
+    },
+    isVerified: {
+      type: Checkbox,
+      defaultValue: false,
+    },
+  },
+  hooks: {
+    /*********************************************************************************************************************
+     * The afterChange hook generates an activation email if either:
+     * - a new User record has been created or 
+     * - if it's an existing record checks and the verificationToken does not match the existing.
+     ********************************************************************************************************************/
+    afterChange: async ( args ) => {
+      if (args.operation === 'create' || args.existingItem.verificationToken !== args.updatedItem.verificationToken){
+        const { sendMail } = require('./email/emailHelper');
+        sendMail(args.updatedItem.email, args.updatedItem.verificationToken);
+      }
+      
+    }
   },
   // List-level access controls
   access: {
@@ -89,11 +122,13 @@ keystone.createList('User', {
   },
 });
 
+// Use the User list for the Authentication Strategy
 const authStrategy = keystone.createAuthStrategy({
   type: PasswordAuthStrategy,
   list: 'User',
 });
 
+// Specify the apps, including the NuxtApp
 const apps = [
     new GraphQLApp(),
     new AdminUIApp({

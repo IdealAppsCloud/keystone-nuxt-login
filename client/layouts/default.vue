@@ -11,6 +11,7 @@
         <b-collapse id="nav-collapse" is-nav>
           <b-navbar-nav>
             <b-nav-item v-show="isLoggedIn==false" to="/login/register">Register</b-nav-item>
+            <b-nav-item v-show="isLoggedIn==false" to="/login">Login</b-nav-item>
             <b-nav-item v-show="isAdmin" to="/login/registration/list">All User Registrations</b-nav-item>
             <b-nav-item :href="allOrganizations[0].webSite">{{allOrganizations[0].name}}</b-nav-item>
           </b-navbar-nav>
@@ -20,7 +21,7 @@
               <template v-slot:button-content>
                   <em>{{authenticatedUser.firstName}} {{authenticatedUser.lastName}}</em>
               </template>
-              <b-dropdown-item href="#">Profile</b-dropdown-item>
+            <!--  <b-dropdown-item href="#">Profile</b-dropdown-item>  -->
               <b-dropdown-item @click="logOut">Sign Out</b-dropdown-item>
             </b-nav-item-dropdown>
           </b-navbar-nav>
@@ -41,6 +42,7 @@
 
 <script>
 import { AUTHENTICATED_USER_QUERY, LOGOUT_MUTATION } from '@/apollo/graphql'
+import { logOut } from '@/services/user'
 
 export default {
   name: 'app',
@@ -75,34 +77,8 @@ export default {
   },
   methods: {
     logOut () {
-      this.$apollo
-        .mutate({
-          mutation: LOGOUT_MUTATION,
-          update: (store, { data: { unauthenticateUser } }) => {
-            // read data from cache for this query
-            const data = store.readQuery({ query: AUTHENTICATED_USER_QUERY })
-
-            data.authenticatedUser.id = ''
-            data.authenticatedUser.firstName = ''
-            data.authenticatedUser.lastName = ''
-            data.authenticatedUser.email = ''
-            data.authenticatedUser.isAdmin = false
-
-            // write data back to the cache
-            store.writeQuery({ query: AUTHENTICATED_USER_QUERY, data })
-          }
-        })
-        .then(response => {
-          // save user token to localstorage
-          localStorage.removeItem('keystone-token')
-
-          // redirect user
-          this.$router.replace('/login')
-        })
-        .catch((error) => {
-          // Error
-          this.$toast.error('Error - '+error, {duration: 5000, keepOnHover: true, closeOnSwipe: true})
-        })
+      logOut(this.$apollo, this.$toast)
+      this.$router.replace('/login')
     }
   },
   watch: {
